@@ -1,0 +1,29 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/background_dark"
+    tools:context="carnaude.sleepmode.TimeActivity">
+
+    <!-- The primary full-screen view. This can be replaced with whatever view
+         is needed to present your content, e.g. VideoView, SurfaceView,
+         TextureView, etc. -->
+    <carnaude.sleepmode.CustomFontTextView
+        android:id="@+id/fullscreen_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/background_dark"
+        android:gravity="center"
+        android:keepScreenOn="true"
+        android:text="88:88"
+        android:textColor="@color/colorAccent"
+        android:textSize="@dimen/clock_size"
+        android:typeface="normal"
+        android:visibility="visible"
+        app:font="@string/digit_font_mono" />
+
+    <!-- This FrameLayout insets its children based on system windows using
+         android:fitsSystemWindows. -->
+
+</FrameLayout>
