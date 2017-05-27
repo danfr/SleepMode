@@ -3,6 +3,8 @@
     package="carnaude.sleepmode">
 
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.CHANGE_CONFIGURATION" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

@@ -2,18 +2,21 @@ package carnaude.sleepmode
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.pm.PackageManager
+import android.content.Intent
+import android.media.AudioManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
 import android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE
-import android.support.v4.app.ActivityCompat
-import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.view.View
+import pub.devrel.easypermissions.AfterPermissionGranted
+import pub.devrel.easypermissions.EasyPermissions
 import java.text.SimpleDateFormat
 import java.util.*
 
+const val MY_PERMISSIONS_REQUEST = 42
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -23,6 +26,7 @@ class TimeActivity : AppCompatActivity() {
     private val mHideHandler = Handler()
     private val mClockHandler = Handler()
     private var mContentView: CustomFontTextView? = null
+    private var permOk: Boolean = false
     private val mHidePart2Runnable = Runnable {
         // Delayed removal of status and navigation bar
 
@@ -61,6 +65,7 @@ class TimeActivity : AppCompatActivity() {
 
     private var saveAutoBrightnessState: Boolean? = null
     private var saveBrightnessValue: Int? = null
+    private var saveRingerValue: Int? = null
 
     override fun onResume() {
         super.onResume()
@@ -71,51 +76,51 @@ class TimeActivity : AppCompatActivity() {
         startChrono()
         if (Settings.System.canWrite(this))
             setBrightness()
+        else
+            openAndroidPermissionsMenu()
+
+        if (permOk)
+            muteSound()
     }
 
-    private val MY_PERMISSIONS_REQUEST_WRITE_SETTINGS = 42
+    private fun muteSound() {
+        val amanager = getSystemService(AUDIO_SERVICE) as AudioManager
 
+        //turn ringer silent
+        saveRingerValue = amanager.ringerMode
+        amanager.ringerMode = AudioManager.RINGER_MODE_SILENT
+    }
+
+    private fun restoreSound() {
+        val amanager = getSystemService(AUDIO_SERVICE) as AudioManager
+
+        amanager.ringerMode = saveRingerValue!!
+    }
+
+    private fun openAndroidPermissionsMenu() {
+        val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
+        intent.data = Uri.parse("package:" + this.packageName)
+        startActivity(intent)
+    }
+
+    @AfterPermissionGranted(MY_PERMISSIONS_REQUEST)
     private fun askPerm() {
-        // Should we show an explanation?
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                Manifest.permission.WRITE_SETTINGS)) {
-
-            // Show an explanation to the user *asynchronously* -- don't block
-            // this thread waiting for the user's response! After the user
-            // sees the explanation, try again to request the permission.
-
+        val perms = Manifest.permission.GET_ACCOUNTS
+        if (EasyPermissions.hasPermissions(this, perms)) {
+            permOk = true
         } else {
-
-            // No explanation needed, we can request the permission.
-            val perms = Array(1, { Manifest.permission.WRITE_SETTINGS })
-            ActivityCompat.requestPermissions(this,
-                    perms,
-                    MY_PERMISSIONS_REQUEST_WRITE_SETTINGS)
-
-            // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-            // app-defined int constant. The callback method gets the
-            // result of the request.
+            // Do not have permissions, request them now
+            EasyPermissions.requestPermissions(this, "Toto",
+                    MY_PERMISSIONS_REQUEST, perms)
         }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int,
                                             permissions: Array<String>, grantResults: IntArray) {
-        when (requestCode) {
-            MY_PERMISSIONS_REQUEST_WRITE_SETTINGS -> {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-                    setBrightness()
-                } else {
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                }
-                return
-            }
-        }// other 'case' lines to check for other
-        // permissions this app might request
+        // Forward results to EasyPermissions
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
     }
 
     private fun setBrightness() {
@@ -137,7 +142,7 @@ class TimeActivity : AppCompatActivity() {
             saveBrightnessValue = Settings.System.getInt(contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS)
         }
 
-        Settings.System.putInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, 255)  //brightness is an integer variable (0-255), but dont use 0
+        Settings.System.putInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, 10)  //brightness is an integer variable (0-255), but dont use 0
 
         // Apply changes
         try {
@@ -152,11 +157,11 @@ class TimeActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_SETTINGS)
-                == PackageManager.PERMISSION_GRANTED) {
+        if (Settings.System.canWrite(this))
             restoreBrightness()
-        }
+
+        if (permOk)
+            restoreSound()
     }
 
     private fun restoreBrightness() {
@@ -190,6 +195,8 @@ class TimeActivity : AppCompatActivity() {
 
         // Set up the user interaction to manually show or hide the system UI.
         mContentView!!.setOnClickListener { toggle() }
+
+        askPerm()
     }
 
     private fun toggle() {
